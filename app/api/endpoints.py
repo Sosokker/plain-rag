@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 from structlog import get_logger
 
 from app.schemas.models import IngestResponse, QueryRequest, QueryResponse
@@ -60,6 +61,22 @@ async def query_index(
         sources = result.get("sources", ["No sources"])
 
         return QueryResponse(answer=answer, sources=sources)
+
+    except Exception:
+        logger.exception("Failed to answer query")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/query/stream")
+async def query_index_stream(
+    request: QueryRequest,
+    rag_service: Annotated[RAGService, Depends(get_rag_service)],
+):
+    try:
+        return StreamingResponse(
+            rag_service.answer_query_stream(request.question),
+            media_type="text/event-stream",
+        )
 
     except Exception:
         logger.exception("Failed to answer query")
