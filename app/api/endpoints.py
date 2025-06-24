@@ -38,9 +38,7 @@ async def ingest_file(
         shutil.copyfileobj(file.file, buffer)
 
     # Add the ingestion task to run in the background
-    background_tasks.add_task(
-        rag_service.ingest_document, file_path.as_posix(), file.filename
-    )
+    background_tasks.add_task(rag_service.ingest_document, file_path, file.filename)
 
     # Immediately return a response to the user
     return {
