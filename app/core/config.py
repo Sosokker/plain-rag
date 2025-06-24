@@ -76,7 +76,7 @@ class Settings(BaseSettings):
     # Caching
     CACHE_TTL: int = 300  # 5 minutes
 
-    GEMINI_API_KEY: str
+    GEMINI_API_KEY: str = "secret"
 
     model_config = SettingsConfigDict(
         env_file=ENV_FILE,
