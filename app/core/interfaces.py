@@ -16,6 +16,12 @@ class EmbeddingModel(Protocol):
     def embed_query(self, text: str) -> np.ndarray: ...
 
 
+class Reranker(Protocol):
+    def rerank(
+        self, documents: list[SearchResult], query: str
+    ) -> list[SearchResult]: ...
+
+
 class VectorDB(Protocol):
     def upsert_documents(self, documents: list[dict]) -> None: ...
 

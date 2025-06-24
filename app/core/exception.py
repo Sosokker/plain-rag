@@ -4,3 +4,7 @@ class DocumentInsertionError(Exception):
 
 class DocumentExtractionError(Exception):
     """Exception raised when document extraction from PDF fails."""
+
+
+class ModelNotFoundError(Exception):
+    """Exception raised when model is not found."""
