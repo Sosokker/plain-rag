@@ -3,7 +3,7 @@ import secrets
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import AnyHttpUrl, PostgresDsn, field_validator, model_validator
+from pydantic import PostgresDsn, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -21,24 +21,20 @@ class Settings(BaseSettings):
     # Security
     ALGORITHM: str = "HS256"
 
-    # Backend Server
-    BACKEND_CORS_ORIGINS: list[str | AnyHttpUrl] = []
-
-    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
-    def assemble_cors_origins(self, v: str | list[str]) -> list[str] | str:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        if isinstance(v, (list, str)):
-            return v
-        raise ValueError(v)
-
     # Database
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = ""
     POSTGRES_DB: str = "chat_hub"
     POSTGRES_PORT: str = "5432"
-    DATABASE_URI: PostgresDsn | None = None
+    DATABASE_URI: PostgresDsn = PostgresDsn.build(
+        scheme="postgresql+asyncpg",
+        username=POSTGRES_USER,
+        password=POSTGRES_PASSWORD,
+        host=POSTGRES_SERVER,
+        port=int(POSTGRES_PORT),
+        path=f"/{POSTGRES_DB or ''}",
+    )
 
     @model_validator(mode="after")
     def assemble_db_connection(self) -> "Settings":
@@ -61,6 +57,11 @@ class Settings(BaseSettings):
     VECTOR_STORE_TYPE: str = "pgvector"  # or "chroma", "faiss", etc.
     EMBEDDING_MODEL: str = "sentence-transformers/all-mpnet-base-v2"
 
+    # File uploads
+    UPLOAD_DIR: str = "uploads"  # Relative to project root
+    MAX_UPLOAD_SIZE: int = 100 * 1024 * 1024  # 100MB
+    ALLOWED_DOCUMENT_TYPES: list[str] = ["pdf", "txt", "md"]
+
     # Logging
     LOG_LEVEL: str = "INFO"
 
@@ -74,6 +75,8 @@ class Settings(BaseSettings):
 
     # Caching
     CACHE_TTL: int = 300  # 5 minutes
+
+    GEMINI_API_KEY: str
 
     model_config = SettingsConfigDict(
         env_file=ENV_FILE,
