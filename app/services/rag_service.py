@@ -6,7 +6,7 @@ from typing import TypedDict
 import litellm
 from structlog import get_logger
 
-from app.core.interfaces import EmbeddingModel, VectorDB
+from app.core.interfaces import EmbeddingModel, Reranker, VectorDB
 from app.core.utils import RecursiveCharacterTextSplitter
 
 logger = get_logger()
@@ -18,10 +18,16 @@ class AnswerResult(TypedDict):
 
 
 class RAGService:
-    def __init__(self, embedding_model: EmbeddingModel, vector_db: VectorDB):
+    def __init__(
+        self,
+        embedding_model: EmbeddingModel,
+        vector_db: VectorDB,
+        reranker: Reranker | None = None,
+    ):
         self.embedding_model = embedding_model
         self.vector_db = vector_db
-        self.prompt = """Answer the question based on the following context. 
+        self.reranker = reranker
+        self.prompt = """Answer the question based on the following context.
 If you don't know the answer, say you don't know. Don't make up an answer.
 
 Context:
@@ -69,8 +75,12 @@ Answer:"""
     def answer_query(self, question: str) -> AnswerResult:
         query_embedding = self.embedding_model.embed_query(question)
         search_results = self.vector_db.search(query_embedding, top_k=5)
-        sources = list({chunk["source"] for chunk in search_results if chunk["source"]})
 
+        if self.reranker:
+            logger.info("Reranking search results...")
+            search_results = self.reranker.rerank(search_results, question)
+
+        sources = list({chunk["source"] for chunk in search_results if chunk["source"]})
         context_str = "\n\n".join([chunk["content"] for chunk in search_results])
 
         try:
@@ -92,7 +102,7 @@ Answer:"""
                 max_tokens=500,
             )
 
-            answer_text = response.choices[0].message.content.strip()  # type: ignore
+            answer_text = response.choices[0].message.content.strip()
 
             if not answer_text:
                 answer_text = "No answer generated"
@@ -108,6 +118,11 @@ Answer:"""
     def answer_query_stream(self, question: str) -> Generator[str, None, None]:
         query_embedding = self.embedding_model.embed_query(question)
         search_results = self.vector_db.search(query_embedding, top_k=5)
+
+        if self.reranker:
+            logger.info("Reranking search results...")
+            search_results = self.reranker.rerank(search_results, question)
+
         sources = list({chunk["source"] for chunk in search_results if chunk["source"]})
         context_str = "\n\n".join([chunk["content"] for chunk in search_results])
 

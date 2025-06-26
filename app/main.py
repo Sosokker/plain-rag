@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from structlog import get_logger
 
 from app.api import endpoints
-from app.services.embedding_providers import MiniLMEmbeddingModel
+from app.services.config_service import ConfigService
 from app.services.rag_service import RAGService
 from app.services.vector_stores import PGVectorStore
 
@@ -20,14 +20,17 @@ app_state = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    embedding_provider = MiniLMEmbeddingModel()
-    vector_store_provider = PGVectorStore()
+    config_service = ConfigService()
+    await config_service.initialize_models()
+    app_state["config_service"] = config_service
 
     # This code runs on startup
     logger.info("Application starting up...")
     # Initialize the RAG Service and store it in the app_state
     app_state["rag_service"] = RAGService(
-        embedding_model=embedding_provider, vector_db=vector_store_provider
+        embedding_model=config_service.get_current_embedding_model(),
+        vector_db=PGVectorStore(),
+        reranker=config_service.get_current_reranker_model(),
     )
     yield
 

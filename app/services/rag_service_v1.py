@@ -175,9 +175,9 @@ Answer:"""
             with self.db_conn.cursor() as cursor:
                 cursor.execute(
                     """
-                    SELECT content, source 
-                    FROM documents 
-                    ORDER BY embedding <-> %s::vector 
+                    SELECT content, source
+                    FROM documents
+                    ORDER BY embedding <-> %s::vector
                     LIMIT %s
                     """,
                     (question_embedding.tolist(), top_k),
