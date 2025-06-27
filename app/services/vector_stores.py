@@ -23,11 +23,11 @@ class PGVectorStore(VectorDB):
     def _get_connection(self):
         """Get a new database connection."""
         return psycopg2.connect(
-            host=settings.POSTGRES_SERVER,
-            port=settings.POSTGRES_PORT,
-            user=settings.POSTGRES_USER,
-            password=settings.POSTGRES_PASSWORD,
-            dbname=settings.POSTGRES_DB,
+            host=settings.DB_SERVER,
+            port=settings.DB_PORT,
+            user=settings.DB_USER,
+            password=settings.DB_PASSWORD,
+            dbname=settings.DB_NAME,
         )
 
     def upsert_documents(self, documents: list[dict]) -> None:

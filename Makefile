@@ -1,4 +1,4 @@
-.PHONY: create-tables help
+.PHONY: install-deps create-tables help start
 
 help:
 	@echo "Available targets:"

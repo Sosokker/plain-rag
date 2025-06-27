@@ -7,7 +7,7 @@ from app.core.registry import (
     reranker_registry,
     vector_store_registry,
 )
-from app.schemas.enums import EmbeddingModelName, RerankerModelName
+from app.schemas.enums import EmbeddingModelName, RerankerModelName, VectorStoreType
 from app.services.embedding_providers import MiniLMEmbeddingModel
 from app.services.rerankers import MiniLMReranker
 from app.services.vector_stores import PGVectorStore
@@ -30,9 +30,11 @@ class ConfigService:
 
     def _register_models(self):
         """Register all default models"""
-        embedding_model_registry.register("MiniLMEmbeddingModel", MiniLMEmbeddingModel)
-        reranker_registry.register("MiniLMReranker", MiniLMReranker)
-        vector_store_registry.register("PGVectorStore", PGVectorStore)
+        embedding_model_registry.register(
+            EmbeddingModelName.MiniLMEmbeddingModel, MiniLMEmbeddingModel
+        )
+        reranker_registry.register(RerankerModelName.MiniLMReranker, MiniLMReranker)
+        vector_store_registry.register(VectorStoreType.PGVECTOR, PGVectorStore)
 
     async def initialize_models(self):
         """
@@ -69,15 +71,15 @@ class ConfigService:
         logger.info("Default reranker model initialized: %s", reranker_model_name)
 
         vector_store_name = (
-            getattr(settings, "VECTOR_STORE_TYPE", None) or "PGVectorStore"
+            getattr(settings, "VECTOR_STORE_TYPE", None) or VectorStoreType.PGVECTOR
         )
         if vector_store_name not in vector_store_registry.list_available():
             logger.warning(
                 "Vector store '%s' is not valid. Falling back to default '%s'",
                 vector_store_name,
-                "PGVectorStore",
+                VectorStoreType.PGVECTOR,
             )
-            vector_store_name = "PGVectorStore"
+            vector_store_name = VectorStoreType.PGVECTOR
         await self.set_vector_store(vector_store_name)
         logger.info("Default vector store initialized: %s", vector_store_name)
 
@@ -96,7 +98,7 @@ class ConfigService:
             self._loading_status["embedding_model"] = True
             logger.info("Attempting to load embedding model: %s", model_name)
             model_constructor = embedding_model_registry.get(model_name)
-            self._current_embedding_model = model_constructor()
+            self._current_embedding_model = model_constructor(model_name)
             settings.EMBEDDING_MODEL = model_name  # Update settings
         except KeyError:
             logger.warning("Embedding model '%s' not found in registry.", model_name)
@@ -128,7 +130,7 @@ class ConfigService:
             self._loading_status["reranker_model"] = True
             logger.info("Attempting to load reranker model: %s", model_name)
             model_constructor = reranker_registry.get(model_name)
-            self._current_reranker_model = model_constructor()
+            self._current_reranker_model = model_constructor(model_name)
             # settings.RERANKER_MODEL = model_name
         except KeyError:
             logger.warning("Reranker model '%s' not found in registry.", model_name)
