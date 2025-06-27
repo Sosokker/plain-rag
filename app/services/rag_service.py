@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import TypedDict
 
 import litellm
+from PyPDF2 import PdfReader
+from PyPDF2.errors import PyPdfError
 from structlog import get_logger
 
 from app.core.interfaces import EmbeddingModel, Reranker, VectorDB
@@ -67,8 +69,29 @@ Answer:"""
         self.vector_db.upsert_documents(documents_to_upsert)
 
     def ingest_document(self, file_path: Path, source_name: str):
-        with Path(file_path).open("r", encoding="utf-8") as f:
-            text = f.read()
+        path = Path(file_path)
+        ext = path.suffix
+        text = ""
+        if ext == ".pdf":
+            try:
+                reader = PdfReader(str(file_path))
+                text = "\n".join(page.extract_text() or "" for page in reader.pages)
+            except PyPdfError as e:
+                logger.exception("PDF processing error for %s", file_path)
+                raise ValueError(
+                    f"Failed to extract text from PDF due to a PDF processing error: {e}"
+                ) from e
+            except Exception as e:
+                logger.exception(
+                    "An unexpected error occurred during PDF processing for %s",
+                    file_path,
+                )
+                raise RuntimeError(
+                    f"An unexpected error occurred during PDF processing: {e}"
+                ) from e
+        else:
+            with Path(file_path).open("r", encoding="utf-8") as f:
+                text = f.read()
         text_chunks = self._split_text(text)
         self._ingest_document(text_chunks, source_name)
 
@@ -102,8 +125,14 @@ Answer:"""
                 max_tokens=500,
             )
 
-            answer_text = response.choices[0].message.content.strip()
-
+            answer_text = None
+            choices = getattr(response, "choices", None)
+            if choices and len(choices) > 0:
+                first_choice = choices[0]
+                message = getattr(first_choice, "message", None)
+                content = getattr(message, "content", None)
+                if content:
+                    answer_text = content.strip()
             if not answer_text:
                 answer_text = "No answer generated"
                 sources = ["No sources"]
@@ -146,12 +175,13 @@ Answer:"""
                 stream=True,
             )
 
-            # Yield each chunk of the response as it's generated
             for chunk in response:
-                if chunk.choices:
-                    delta = chunk.choices[0].delta
-                    if hasattr(delta, "content") and delta.content:
-                        yield f'data: {{"token": "{json.dumps(delta.content)}"}}\n\n'
+                choices = getattr(chunk, "choices", None)
+                if choices and len(choices) > 0:
+                    delta = getattr(choices[0], "delta", None)
+                    content = getattr(delta, "content", None)
+                    if content:
+                        yield f'data: {{"token": {json.dumps(content)}}}\n\n'
 
             # Yield sources at the end
             yield f'data: {{"sources": {json.dumps(sources)}}}\n\n'

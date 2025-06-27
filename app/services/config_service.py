@@ -18,13 +18,11 @@ class ConfigService:
             "reranker_model": False,
         }
 
-        # Register available models
         self._register_models()
 
     def _register_models(self):
-        # Register embedding models
+        """Register all default models"""
         embedding_model_registry.register("MiniLMEmbeddingModel", MiniLMEmbeddingModel)
-        # Register reranker models
         reranker_registry.register("MiniLMReranker", MiniLMReranker)
 
     async def initialize_models(self):
@@ -33,7 +31,7 @@ class ConfigService:
         default_embedding_model_name = settings.EMBEDDING_MODEL
         await self.set_embedding_model(default_embedding_model_name)
         logger.info(
-            f"Default embedding model initialized: {default_embedding_model_name}"
+            "Default embedding model initialized: %s", default_embedding_model_name
         )
 
         # Initialize default reranker model (if any)
@@ -42,7 +40,7 @@ class ConfigService:
         default_reranker_model_name = "MiniLMReranker"  # Or from settings
         await self.set_reranker_model(default_reranker_model_name)
         logger.info(
-            f"Default reranker model initialized: {default_reranker_model_name}"
+            "Default reranker model initialized: %s", default_reranker_model_name
         )
 
     async def set_embedding_model(self, model_name: str) -> str:
@@ -57,21 +55,22 @@ class ConfigService:
 
         try:
             self._loading_status["embedding_model"] = True
-            logger.info(f"Attempting to load embedding model: {model_name}")
+            logger.info("Attempting to load embedding model: %s", model_name)
             model_constructor = embedding_model_registry.get(model_name)
             self._current_embedding_model = model_constructor()
             settings.EMBEDDING_MODEL = model_name  # Update settings
-            logger.info(f"Successfully loaded embedding model: {model_name}")
-            return f"Embedding model set to '{model_name}' successfully."
         except KeyError:
-            logger.warning(f"Embedding model '{model_name}' not found in registry.")
+            logger.warning("Embedding model '%s' not found in registry.", model_name)
             return (
                 f"Embedding model '{model_name}' not available. "
                 f"Current model remains '{self._current_embedding_model.__class__.__name__ if self._current_embedding_model else 'None'}'."
             )
         except Exception as e:
-            logger.exception(f"Error loading embedding model {model_name}: {e}")
+            logger.exception("Error loading embedding model %s: %s", model_name, e)
             return f"Failed to load embedding model '{model_name}': {e}"
+        else:
+            logger.info("Successfully loaded embedding model: %s", model_name)
+            return f"Embedding model set to '{model_name}' successfully."
         finally:
             self._loading_status["embedding_model"] = False
 
@@ -87,21 +86,22 @@ class ConfigService:
 
         try:
             self._loading_status["reranker_model"] = True
-            logger.info(f"Attempting to load reranker model: {model_name}")
+            logger.info("Attempting to load reranker model: %s", model_name)
             model_constructor = reranker_registry.get(model_name)
             self._current_reranker_model = model_constructor()
-            # settings.RERANKER_MODEL = model_name # Add this to settings if you want to persist
-            logger.info(f"Successfully loaded reranker model: {model_name}")
-            return f"Reranker model set to '{model_name}' successfully."
+            # settings.RERANKER_MODEL = model_name
         except KeyError:
-            logger.warning(f"Reranker model '{model_name}' not found in registry.")
+            logger.warning("Reranker model '%s' not found in registry.", model_name)
             return (
                 f"Reranker model '{model_name}' not available. "
                 f"Current model remains '{self._current_reranker_model.__class__.__name__ if self._current_reranker_model else 'None'}'."
             )
         except Exception as e:
-            logger.exception(f"Error loading reranker model {model_name}: {e}")
+            logger.exception("Error loading reranker model %s: %s", model_name, e)
             return f"Failed to load reranker model '{model_name}': {e}"
+        else:
+            logger.info("Successfully loaded reranker model: %s", model_name)
+            return f"Reranker model set to '{model_name}' successfully."
         finally:
             self._loading_status["reranker_model"] = False
 
