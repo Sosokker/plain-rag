@@ -95,7 +95,6 @@ def get_settings() -> Settings:
     return Settings()
 
 
-# Create settings instance
 settings = get_settings()
 
 # Set environment variables for third-party libraries
