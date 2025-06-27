@@ -9,10 +9,13 @@ PlainRAG is RAG application without LLM orchestration frameworks like Langchain 
 2. Run the following command to build and start the services:
 
 ```bash
+docker compose up db -d
 make install-deps # or uv sync
 make create-tables
 make start
 ```
+
+Then navigate to [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 or
 
