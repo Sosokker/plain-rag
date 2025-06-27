@@ -43,6 +43,11 @@ class RerankerRegistry(Registry[Callable[..., Any]]):
     """Registry specifically for reranker constructors."""
 
 
+class VectorStoreRegistry(Registry[Callable[..., Any]]):
+    """Registry specifically for vector store constructors."""
+
+
 # Global instances of the registries
 embedding_model_registry = EmbeddingModelRegistry()
 reranker_registry = RerankerRegistry()
+vector_store_registry = VectorStoreRegistry()

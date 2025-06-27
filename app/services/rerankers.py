@@ -1,12 +1,11 @@
-import logging
-
 # pyright: reportArgumentType=false
 from sentence_transformers import CrossEncoder
+from structlog import get_logger
 
 from app.core.exception import ModelNotFoundError
 from app.core.interfaces import Reranker, SearchResult
 
-logger = logging.getLogger(__name__)
+logger = get_logger()
 
 # pyright: reportCallIssue=false
 

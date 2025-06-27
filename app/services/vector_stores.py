@@ -2,6 +2,7 @@ import numpy as np
 import psycopg2
 from psycopg2.extensions import AsIs, register_adapter
 from psycopg2.extras import execute_values
+from structlog import get_logger
 
 from app.core.config import settings
 from app.core.interfaces import SearchResult, VectorDB
@@ -9,6 +10,8 @@ from app.core.interfaces import SearchResult, VectorDB
 # Register NumPy array and float32 adapters for psycopg2
 register_adapter(np.ndarray, AsIs)
 register_adapter(np.float32, AsIs)
+
+logger = get_logger()
 
 
 class PGVectorStore(VectorDB):
@@ -40,12 +43,14 @@ class PGVectorStore(VectorDB):
 
         """
         if not documents:
+            logger.warning("No documents provided for upsert.")
             return
 
         # Validate document structure
         for doc in documents:
             if not all(key in doc for key in ["content", "embedding", "source"]):
                 err = "Document must contain 'content', 'embedding', and 'source' keys"
+                logger.error(f"Invalid document structure: {doc}")
                 raise ValueError(err)
 
         data_to_insert = [
@@ -62,8 +67,8 @@ class PGVectorStore(VectorDB):
             RETURNING id
         """
 
-        with self._get_connection() as conn, conn.cursor() as cursor:
-            try:
+        try:
+            with self._get_connection() as conn, conn.cursor() as cursor:
                 execute_values(
                     cursor,
                     query,
@@ -72,11 +77,14 @@ class PGVectorStore(VectorDB):
                     page_size=100,
                 )
                 conn.commit()
-            except Exception:
-                conn.rollback()
-                raise
+        except psycopg2.Error as db_err:
+            logger.exception(f"Database error during upsert: {db_err}")
+            raise
+        except Exception as e:
+            logger.exception(f"Unexpected error during upsert: {e}")
+            raise
 
-    def search(self, vector: np.ndarray, top_k: int = 5) -> list[SearchResult]:
+    def search(self, vector: list, top_k: int = 5) -> list[SearchResult]:
         """
         Search for similar documents using vector similarity.
 
@@ -91,7 +99,8 @@ class PGVectorStore(VectorDB):
             psycopg2.Error: For database-related errors.
 
         """
-        if not vector:
+        if len(vector) == 0:
+            logger.warning("Empty vector provided for search.")
             return []
 
         query = """
@@ -101,13 +110,17 @@ class PGVectorStore(VectorDB):
             LIMIT %s
         """
 
-        with self._get_connection() as conn, conn.cursor() as cursor:
-            try:
+        try:
+            with self._get_connection() as conn, conn.cursor() as cursor:
                 cursor.execute(query, (np.array(vector).tolist(), top_k))
-                return [
+                results = [
                     SearchResult(content=row[0], source=row[1])
                     for row in cursor.fetchall()
                 ]
-            except Exception:
-                conn.rollback()
-                raise
+                return results
+        except psycopg2.Error as db_err:
+            logger.exception(f"Database error during search: {db_err}")
+            raise
+        except Exception as e:
+            logger.exception(f"Unexpected error during search: {e}")
+            raise
