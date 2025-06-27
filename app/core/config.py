@@ -59,4 +59,5 @@ def get_settings() -> Settings:
 settings = get_settings()
 
 # Set environment variables for third-party libraries
+os.environ["GEMINI_API_KEY"] = settings.GEMINI_API_KEY
 os.environ["TOKENIZERS_PARALLELISM"] = "false"

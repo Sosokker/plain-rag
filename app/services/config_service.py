@@ -44,7 +44,7 @@ class ConfigService:
         """
         logger.info("Initializing default models...")
         embedding_model_name = settings.EMBEDDING_MODEL
-        if embedding_model_name not in EmbeddingModelName.__members__:
+        if embedding_model_name not in EmbeddingModelName._value2member_map_:
             logger.warning(
                 "Embedding model '%s' is not valid. Falling back to default '%s'",
                 embedding_model_name,
@@ -60,7 +60,7 @@ class ConfigService:
             getattr(settings, "RERANKER_MODEL", None)
             or RerankerModelName.MiniLMReranker.value
         )
-        if reranker_model_name not in RerankerModelName.__members__:
+        if reranker_model_name not in RerankerModelName._value2member_map_:
             logger.warning(
                 "Reranker model '%s' is not valid. Falling back to default '%s'",
                 reranker_model_name,
@@ -73,7 +73,7 @@ class ConfigService:
         vector_store_name = (
             getattr(settings, "VECTOR_STORE_TYPE", None) or VectorStoreType.PGVECTOR
         )
-        if vector_store_name not in vector_store_registry.list_available():
+        if vector_store_name not in VectorStoreType._value2member_map_:
             logger.warning(
                 "Vector store '%s' is not valid. Falling back to default '%s'",
                 vector_store_name,

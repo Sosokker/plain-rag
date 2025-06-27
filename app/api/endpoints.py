@@ -43,7 +43,9 @@ async def ingest_file(
     if not file.filename:
         raise HTTPException(status_code=400, detail="File name is required")
 
-    with tempfile.NamedTemporaryFile(delete=True, suffix=file.filename) as tmp:
+    with tempfile.NamedTemporaryFile(
+        delete=False, suffix=file.filename, delete_on_close=True
+    ) as tmp:
         file.file.seek(0)
         shutil.copyfileobj(file.file, tmp)
         tmp.flush()
