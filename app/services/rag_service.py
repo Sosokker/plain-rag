@@ -9,6 +9,7 @@ from PyPDF2.errors import PyPdfError
 from structlog import get_logger
 
 from app.core.config import settings
+from app.core.exception import FileTypeIngestionError
 from app.core.interfaces import EmbeddingModel, Reranker, VectorDB
 from app.core.utils import RecursiveCharacterTextSplitter
 from app.schemas.enums import LLMModelName
@@ -74,6 +75,8 @@ Answer:"""
         path = Path(file_path)
         ext = path.suffix
         text = ""
+        if ext[1:] not in settings.ALLOWED_DOCUMENT_TYPES:
+            raise FileTypeIngestionError("Only support PDF, MD and TXT files")
         if ext == ".pdf":
             try:
                 reader = PdfReader(str(file_path))

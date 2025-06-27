@@ -11,7 +11,7 @@ logger = get_logger()
 
 
 class MiniLMReranker(Reranker):
-    def __init__(self, model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"):
+    def __init__(self, model_name: str):
         try:
             self.model = CrossEncoder(model_name)
         except Exception as er:

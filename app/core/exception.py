@@ -8,3 +8,7 @@ class DocumentExtractionError(Exception):
 
 class ModelNotFoundError(Exception):
     """Exception raised when model is not found."""
+
+
+class FileTypeIngestionError(Exception):
+    """Exception raised when user upload unsupported file type."""
