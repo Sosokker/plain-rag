@@ -30,6 +30,10 @@ class PGVectorStore(VectorDB):
             dbname=settings.DB_NAME,
         )
 
+    def to_pgvector_str(self, vec: np.ndarray):
+        arr = np.array(vec, dtype=float).flatten()
+        return f"[{','.join(str(float(x)) for x in arr)}]"
+
     def upsert_documents(self, documents: list[dict]) -> None:
         """
         Upsert documents into the vector store.
@@ -53,9 +57,22 @@ class PGVectorStore(VectorDB):
                 logger.error(f"Invalid document structure: {doc}")
                 raise ValueError(err)
 
+        seen = set()
+        unique_docs = []
+        for doc in documents:
+            key = (doc["content"], doc["source"])
+            if key not in seen:
+                seen.add(key)
+                unique_docs.append(doc)
+
+        if len(unique_docs) < len(documents):
+            logger.warning(
+                "Duplicate (content, source) pairs found and removed before upsert."
+            )
+
         data_to_insert = [
-            (doc["content"], np.array(doc["embedding"]), doc["source"])
-            for doc in documents
+            (doc["content"], self.to_pgvector_str(doc["embedding"]), doc["source"])
+            for doc in unique_docs
         ]
 
         query = """
@@ -84,7 +101,7 @@ class PGVectorStore(VectorDB):
             logger.exception(f"Unexpected error during upsert: {e}")
             raise
 
-    def search(self, vector: list, top_k: int = 5) -> list[SearchResult]:
+    def search(self, vector: np.ndarray, top_k: int = 5) -> list[SearchResult]:
         """
         Search for similar documents using vector similarity.
 

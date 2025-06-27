@@ -95,9 +95,11 @@ def create_documents_table(conn: pg_connection, cursor: pg_cursor) -> None:
             CREATE TABLE IF NOT EXISTS documents (
                 id SERIAL PRIMARY KEY,
                 content TEXT NOT NULL,
-                embedding VECTOR(384),  -- Match the dimension of your embedding model
+                embedding VECTOR(384),
                 source VARCHAR(255),
-                created_at TIMESTAMPTZ DEFAULT NOW()
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW(),
+                CONSTRAINT unique_content_source UNIQUE (content, source)
             );
         """)
         conn.commit()
