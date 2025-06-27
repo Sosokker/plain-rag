@@ -78,6 +78,8 @@ class Settings(BaseSettings):
 
     GEMINI_API_KEY: str = "secret"
 
+    SYSTEM_PROMPT: str = "You are a helpful assistant that answers questions based on the provided context."
+
     model_config = SettingsConfigDict(
         env_file=ENV_FILE,
         env_file_encoding="utf-8",

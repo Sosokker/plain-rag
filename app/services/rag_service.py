@@ -8,8 +8,10 @@ from PyPDF2 import PdfReader
 from PyPDF2.errors import PyPdfError
 from structlog import get_logger
 
+from app.core.config import settings
 from app.core.interfaces import EmbeddingModel, Reranker, VectorDB
 from app.core.utils import RecursiveCharacterTextSplitter
+from app.schemas.enums import LLMModelName
 
 logger = get_logger()
 
@@ -108,11 +110,11 @@ Answer:"""
 
         try:
             response = litellm.completion(
-                model="gemini/gemini-2.0-flash",
+                model=LLMModelName.GeminiFlash.value,
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a helpful assistant that answers questions based on the provided context.",
+                        "content": settings.SYSTEM_PROMPT,
                     },
                     {
                         "role": "user",
@@ -157,11 +159,11 @@ Answer:"""
 
         try:
             response = litellm.completion(
-                model="gemini/gemini-2.0-flash",
+                model=LLMModelName.GeminiFlash.value,
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a helpful assistant that answers questions based on the provided context.",
+                        "content": settings.SYSTEM_PROMPT,
                     },
                     {
                         "role": "user",
