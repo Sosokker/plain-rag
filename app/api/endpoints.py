@@ -1,4 +1,5 @@
 import shutil
+import tempfile
 from pathlib import Path
 from typing import Annotated
 
@@ -39,20 +40,17 @@ async def ingest_file(
     file: Annotated[UploadFile, File(...)],
     rag_service: Annotated[RAGService, Depends(get_rag_service)],
 ):
-    # Save the uploaded file temporarily
-    temp_dir = Path("temp_files")
-    Path.mkdir(temp_dir, exist_ok=True)
     if not file.filename:
         raise HTTPException(status_code=400, detail="File name is required")
-    file_path = temp_dir / Path(file.filename)
 
-    with file_path.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    with tempfile.NamedTemporaryFile(delete=True, suffix=file.filename) as tmp:
+        file.file.seek(0)
+        shutil.copyfileobj(file.file, tmp)
+        tmp.flush()
+        background_tasks.add_task(
+            rag_service.ingest_document, Path(tmp.name), file.filename
+        )
 
-    # Add the ingestion task to run in the background
-    background_tasks.add_task(rag_service.ingest_document, file_path, file.filename)
-
-    # Immediately return a response to the user
     return {
         "message": "File upload successful. Ingestion has started in the background.",
         "filename": file.filename,
